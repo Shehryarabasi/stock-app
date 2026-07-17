@@ -17,18 +17,15 @@ export default function App() {
     return Object.values(rawStockData).filter(item => typeof item === 'object' && item !== null);
   }, []);
 
-  // Filter items matching exact keys from Excel screenshot
+  // Bulletproof Global Filter Logic (Loops through all column fields automatically)
   const filteredItems = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return initialStockData.slice(0, resultLimit);
 
     return initialStockData.filter(item => {
       if (!item) return false;
-      return (
-        (item["ITEM DESC"] && String(item["ITEM DESC"]).toLowerCase().includes(query)) ||
-        (item["ITEM"] && String(item["ITEM"]).toLowerCase().includes(query)) ||
-        (item["SUPPLIER_NAME"] && String(item["SUPPLIER_NAME"]).toLowerCase().includes(query)) ||
-        (item["PRIMARY BAR"] && String(item["PRIMARY BAR"]).toLowerCase().includes(query))
+      return Object.values(item).some(value => 
+        value !== null && value !== undefined && String(value).toLowerCase().includes(query)
       );
     }).slice(0, resultLimit);
   }, [searchQuery, resultLimit, initialStockData]);
@@ -77,7 +74,7 @@ export default function App() {
         renderItem={({ item, index }) => {
           const isExpanded = expandedItemId === index;
           
-          // Exact matching variables from your spreadsheet headers
+          // Mappings matching your exact spreadsheet headers
           const itemDesc = item["ITEM DESC"] || "No Description Available";
           const itemNum = item["ITEM"] || "N/A";
           const barcodeNum = item["PRIMARY BAR"] || "N/A";
@@ -90,7 +87,7 @@ export default function App() {
 
           return (
             <View style={styles.cardContainer}>
-              {/* Main row click target */}
+              {/* Clickable Header Row */}
               <TouchableOpacity 
                 style={[styles.clickableRow, isExpanded && styles.activeClickableRow]} 
                 onPress={() => handleItemPress(index)}
@@ -137,7 +134,7 @@ export default function App() {
                     </View>
                   </View>
 
-                  {/* QR barcode mapping */}
+                  {/* QR Barcode Section */}
                   {barcodeNum !== "N/A" && (
                     <View style={styles.qrSection}>
                       <Text style={styles.qrLabel}>SCAN BARCODE</Text>
