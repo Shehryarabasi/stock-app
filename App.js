@@ -5,24 +5,26 @@ import initialStockData from './products.json';
 
 export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [deptQuery, setDeptQuery] = useState('');
   const [selectedDeptCode, setSelectedDeptCode] = useState(null);
   const [resultLimit, setResultLimit] = useState(10);
 
-  // Departments mapped directly to your Excel "DEPT" and "DEPT_NAME" columns
-  const departments = [
-    { code: '3', name: 'Homecenter' },
-    { code: 'D04', name: 'Electronics' },
-    { code: 'G01', name: 'Groceries' },
-    { code: 'H05', name: 'Home Goods' }
-  ];
+  // Automatically find all unique departments directly from your data file
+  const departments = useMemo(() => {
+    const deptMap = new Map();
+    initialStockData.forEach(item => {
+      if (item["DEPT"] && item["DEPT_NAME"]) {
+        deptMap.set(String(item["DEPT"]), String(item["DEPT_NAME"]).trim());
+      }
+    });
+    return Array.from(deptMap.entries()).map(([code, name]) => ({ code, name }));
+  }, []);
 
-  // Search Logic
+  // Search and Filter Logic
   const filteredItems = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
 
     const matched = initialStockData.filter(item => {
-      const matchesSearch =
+      const matchesSearch = !query ||
         (item["ITEM DESC"] && item["ITEM DESC"].toLowerCase().includes(query)) ||
         (item["ITEM"] && item["ITEM"].toString().includes(query)) ||
         (item["SUPPLIER NAME"] && item["SUPPLIER NAME"].toLowerCase().includes(query)) ||
@@ -42,7 +44,7 @@ export default function App() {
       <Text style={styles.title}>Shehryar Zaheer</Text>
       <Text style={styles.subtitle}>PRIVATE MOBILE STOCK PORTAL</Text>
 
-      {/* Main Search Input */}
+      {/* Search Input Bar */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -63,7 +65,7 @@ export default function App() {
         </select>
       </View>
 
-      {/* Department Filter Buttons */}
+      {/* Dynamic Department Buttons generated from data */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.deptContainer}>
         <TouchableOpacity
           style={[styles.deptButton, !selectedDeptCode && styles.activeDeptButton]}
@@ -77,12 +79,12 @@ export default function App() {
             style={[styles.deptButton, selectedDeptCode === dept.code && styles.activeDeptButton]}
             onPress={() => setSelectedDeptCode(dept.code)}
           >
-            <Text style={styles.deptButtonText}>{dept.code} - {dept.name}</Text>
+            <Text style={styles.deptButtonText}>{dept.name}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Inventory Cards List */}
+      {/* Inventory Display Cards */}
       <FlatList
         data={filteredItems}
         keyExtractor={(item, index) => index.toString()}
@@ -112,7 +114,6 @@ export default function App() {
               </View>
             </View>
             
-            {/* Live QR Generation from the Barcode Column */}
             {item["PRIMARY BAR"] && (
               <View style={styles.qrContainer}>
                 <QRCodeSVG value={String(item["PRIMARY BAR"])} size={70} bgcolor="#fff" fgcolor="#000" />
