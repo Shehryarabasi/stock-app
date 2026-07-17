@@ -1,29 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { StyleSheet, Text, View, TextInput, ScrollView, FlatList, TouchableOpacity } from 'react-native';
 import { QRCodeSVG } from 'qrcode.react';
-
-// Sample stock data structured for your app
-const initialStockData = [
-  {
-    item_number: "10204",
-    item_name: "Wireless Mouse ABC Pro",
-    dept_code: "D04",
-    dept_name: "Electronics",
-    supplier_name: "Logitech Dist",
-    supplier_code: "SUP-88",
-    barcode: "1234567890"
-  },
-  {
-    item_number: "20003",
-    item_name: "Organic Olive Oil",
-    dept_code: "G01",
-    dept_name: "Groceries",
-    supplier_name: "Alibaba Sourcing",
-    supplier_code: "SUP-12",
-    barcode: "0987654321"
-  }
-];
-
+import initialStockData from './products.json';
 export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [deptQuery, setDeptQuery] = useState('');
