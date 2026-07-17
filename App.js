@@ -1,42 +1,34 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-// Renders the QR code on your screen
-import { QRCodeSVG } from 'qrcode.react'; 
-// Handles your mobile phone's camera to scan actual barcodes
-import { Html5Qrcode } from "html5-qrcode"; 
+import React, { useState, useMemo } from 'react';
+import { StyleSheet, Text, View, TextInput, ScrollView, FlatList, TouchableOpacity } from 'react-native';
+import { QRCodeSVG } from 'qrcode.react';
 
-export default function StockApp() {
-  // --- 1. YOUR STOCK DATABASE ---
-  const [stockDatabase, setStockDatabase] = useState([
-    {
-      item_number: "10204",
-      item_name: "Wireless Mouse ABC Pro",
-      dept_code: "D04",
-      dept_name: "Electronics",
-      supplier_name: "Logitech Dist",
-      supplier_code: "SUP-88",
-      barcode: "1234567890"
-    },
-    {
-      item_number: "20003",
-      item_name: "Organic Olive Oil",
-      dept_code: "G01",
-      dept_name: "Groceries",
-      supplier_name: "Alibaba Sourcing",
-      supplier_code: "SUP-12",
-      barcode: "0987654321"
-    }
-  ]);
+// Sample stock data structured for your app
+const initialStockData = [
+  {
+    item_number: "10204",
+    item_name: "Wireless Mouse ABC Pro",
+    dept_code: "D04",
+    dept_name: "Electronics",
+    supplier_name: "Logitech Dist",
+    supplier_code: "SUP-88",
+    barcode: "1234567890"
+  },
+  {
+    item_number: "20003",
+    item_name: "Organic Olive Oil",
+    dept_code: "G01",
+    dept_name: "Groceries",
+    supplier_name: "Alibaba Sourcing",
+    supplier_code: "SUP-12",
+    barcode: "0987654321"
+  }
+];
 
-  // --- 2. APP STATE ---
+export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [deptQuery, setDeptQuery] = useState(''); 
-  const [selectedDeptCode, setSelectedDeptCode] = useState(null); 
-  const [resultLimit, setResultLimit] = useState(10); 
-  
-  // Camera scanner states
-  const [isScanning, setIsScanning] = useState(false);
-  const [scannerError, setScannerError] = useState('');
-  const html5QrCodeRef = useRef(null);
+  const [deptQuery, setDeptQuery] = useState('');
+  const [selectedDeptCode, setSelectedDeptCode] = useState(null);
+  const [resultLimit, setResultLimit] = useState(10);
 
   const departments = [
     { code: 'D04', name: 'Electronics' },
@@ -44,64 +36,11 @@ export default function StockApp() {
     { code: 'H05', name: 'Home Goods' }
   ];
 
-  // --- 3. CAMERA BARCODE SCANNER LOGIC ---
-  const startScanner = async () => {
-    setIsScanning(true);
-    setScannerError('');
-    // Short delay to ensure the DOM element for the video feed is fully rendered
-    setTimeout(async () => {
-      try {
-        const html5QrCode = new Html5Qrcode("camera-reader");
-        html5QrCodeRef.current = html5QrCode;
-
-        await html5QrCode.start(
-          { facingMode: "environment" }, // Forces use of the rear phone camera
-          {
-            fps: 10,
-            qrbox: { width: 280, height: 150 }, // Aspect ratio shaped for 1D barcodes
-          },
-          (decodedText) => {
-            // Success: Put the scanned barcode into the search query
-            setSearchQuery(decodedText);
-            stopScanner();
-          },
-          (errorMessage) => {
-            // Frame analysis failures are silent to avoid UI clutter
-          }
-        );
-      } catch (err) {
-        setScannerError("Camera access denied or unavailable.");
-        setIsScanning(false);
-      }
-    }, 300);
-  };
-
-  const stopScanner = async () => {
-    if (html5QrCodeRef.current) {
-      try {
-        await html5QrCodeRef.current.stop();
-      } catch (err) {
-        console.error("Error stopping camera", err);
-      }
-      html5QrCodeRef.current = null;
-    }
-    setIsScanning(false);
-  };
-
-  // Clean up the camera connection if the user closes the page
-  useEffect(() => {
-    return () => {
-      if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(() => {});
-      }
-    };
-  }, []);
-
-  // --- 4. THE SEARCH LOGIC ---
+  // Search Logic
   const filteredItems = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
 
-    const matched = stockDatabase.filter(item => {
+    const matched = initialStockData.filter(item => {
       const matchesSearch = 
         item.item_name.toLowerCase().includes(query) ||
         item.item_number.toString().includes(query) ||
@@ -115,171 +54,285 @@ export default function StockApp() {
     });
 
     return matched.slice(0, resultLimit);
-  }, [searchQuery, selectedDeptCode, resultLimit, stockDatabase]);
+  }, [searchQuery, selectedDeptCode, resultLimit]);
 
   return (
-    <div className="p-4 max-w-md mx-auto bg-slate-950 text-white min-h-screen font-sans">
-      
-      {/* --- BRANDING HEADER --- */}
-      <header className="text-center my-6">
-        <h1 className="text-3xl font-extrabold tracking-wider text-cyan-400">Shehryar Zaheer</h1>
-        <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest">Private Mobile Stock Portal</p>
-      </header>
+    <View style={styles.container}>
+      {/* Branding Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Shehryar Zaheer</Text>
+        <Text style={styles.subtitle}>Private Mobile Stock Portal</Text>
+      </View>
 
-      <hr className="border-slate-800 mb-6" />
-
-      {/* --- CAMERA SCANNING PANEL --- */}
-      {isScanning && (
-        <div className="mb-4 bg-slate-900 border border-cyan-500/30 p-4 rounded-xl relative">
-          <h2 className="text-xs font-bold text-cyan-400 mb-2 text-center">Aim camera at the Barcode</h2>
-          
-          {/* Active camera view container */}
-          <div id="camera-reader" className="w-full overflow-hidden rounded-lg bg-black" style={{ minHeight: '220px' }}></div>
-          
-          <button 
-            onClick={stopScanner}
-            className="w-full mt-3 bg-red-950 hover:bg-red-900 text-red-400 border border-red-900/50 py-2 rounded-lg text-xs font-bold"
-          >
-            Cancel Scanning
-          </button>
-        </div>
-      )}
-      {scannerError && (
-        <div className="mb-4 text-xs text-red-400 bg-red-950/20 border border-red-900/40 p-2 rounded text-center">
-          {scannerError}
-        </div>
-      )}
-
-      {/* --- SEARCH BOX & LIMIT SELECTOR & SCAN BUTTON --- */}
-      <div className="flex gap-2 mb-3">
-        <div className="flex-1 relative">
-          <input
-            type="text"
-            placeholder="Search item, code, supplier..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-3 bg-slate-900 rounded-lg border border-slate-800 text-white focus:outline-none focus:border-cyan-500 text-sm pr-16"
-          />
-          {/* Inline scanner trigger button */}
-          {!isScanning && (
-            <button
-              onClick={startScanner}
-              className="absolute right-2 top-2 bg-cyan-950 hover:bg-cyan-900 text-cyan-400 border border-cyan-800/40 px-2 py-1.5 rounded text-xs font-bold"
-            >
-              📷 Scan
-            </button>
-          )}
-        </div>
-        
-        {/* Max Results Selector */}
-        <div className="flex flex-col justify-center">
+      {/* Main Search Bar and Result Limit Row */}
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search item, code, supplier..."
+          placeholderTextColor="#64748b"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        <View style={styles.selectContainer}>
           <select
             value={resultLimit}
             onChange={(e) => setResultLimit(Number(e.target.value))}
-            className="p-3 bg-slate-900 rounded-lg border border-slate-800 text-white text-xs font-bold cursor-pointer focus:outline-none focus:border-cyan-500"
+            style={styles.htmlSelect}
           >
-            <option value={10}>10 Results</option>
-            <option value={30}>30 Results</option>
-            <option value={50}>50 Results</option>
+            <option value={10}>10 Max</option>
+            <option value={30}>30 Max</option>
+            <option value={50}>50 Max</option>
           </select>
-        </div>
-      </div>
+        </View>
+      </View>
 
-      {/* --- DEPARTMENT FILTER --- */}
-      <div className="flex gap-2 mb-4">
-        <input
-          type="text"
-          placeholder="Filter by Dept Code or Name (e.g., D04)"
+      {/* Department Filter Input */}
+      <View style={styles.searchRow}>
+        <TextInput
+          style={[styles.searchInput, { fontSize: 12 }]}
+          placeholder="Filter by Dept Code or Name (e.g. D04)"
+          placeholderTextColor="#64748b"
           value={deptQuery}
-          onChange={(e) => {
-            setDeptQuery(e.target.value);
+          onChangeText={(text) => {
+            setDeptQuery(text);
             const found = departments.find(
-              d => d.code.toLowerCase() === e.target.value.toLowerCase() || 
-                   d.name.toLowerCase().includes(e.target.value.toLowerCase())
+              d => d.code.toLowerCase() === text.toLowerCase() || 
+                   d.name.toLowerCase().includes(text.toLowerCase())
             );
             if (found) setSelectedDeptCode(found.code);
           }}
-          className="flex-1 p-2 bg-slate-900 rounded-lg border border-slate-800 text-xs focus:outline-none"
         />
         {selectedDeptCode && (
-          <button 
-            onClick={() => { setSelectedDeptCode(null); setDeptQuery(''); }}
-            className="bg-red-950 text-red-400 border border-red-900 px-3 rounded-lg text-xs font-bold"
+          <TouchableOpacity 
+            style={styles.clearBtn}
+            onPress={() => { setSelectedDeptCode(null); setDeptQuery(''); }}
           >
-            Clear Filter
-          </button>
+            <Text style={styles.clearBtnText}>Clear</Text>
+          </TouchableOpacity>
         )}
-      </div>
+      </View>
 
-      {/* --- QUICK CHIPS --- */}
-      <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none">
-        <button
-          onClick={() => { setSelectedDeptCode(null); setDeptQuery(''); }}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${
-            !selectedDeptCode ? 'bg-cyan-500 text-slate-950' : 'bg-slate-900 text-slate-400'
-          }`}
+      {/* Department Quick Chips */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+        <TouchableOpacity
+          style={[styles.chip, !selectedDeptCode && styles.activeChip]}
+          onPress={() => { setSelectedDeptCode(null); setDeptQuery(''); }}
         >
-          All Departments
-        </button>
+          <Text style={[styles.chipText, !selectedDeptCode && styles.activeChipText]}>All Depts</Text>
+        </TouchableOpacity>
         {departments.map((dept) => (
-          <button
+          <TouchableOpacity
             key={dept.code}
-            onClick={() => {
+            style={[styles.chip, selectedDeptCode === dept.code && styles.activeChip]}
+            onPress={() => {
               setSelectedDeptCode(dept.code);
               setDeptQuery(dept.name);
             }}
-            className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${
-              selectedDeptCode === dept.code ? 'bg-cyan-500 text-slate-950' : 'bg-slate-900 text-slate-400'
-            }`}
           >
-            {dept.code} - {dept.name}
-          </button>
+            <Text style={[styles.chipText, selectedDeptCode === dept.code && styles.activeChipText]}>
+              {dept.code} - {dept.name}
+            </Text>
+          </TouchableOpacity>
         ))}
-      </div>
+      </ScrollView>
 
-      {/* --- STOCK LIST DISPLAY --- */}
-      <div className="space-y-3">
-        {filteredItems.length > 0 ? (
-          filteredItems.map((item) => (
-            <div key={item.item_number} className="p-4 bg-slate-900 rounded-xl border border-slate-800 flex justify-between items-center">
-              <div>
-                {/* Clearly displays Department Name and Code */}
-                <div className="flex gap-2 items-center">
-                  <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800/40 px-2 py-0.5 rounded font-bold">
-                    Dept: {item.dept_name} ({item.dept_code})
-                  </span>
-                  <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">
-                    #{item.item_number}
-                  </span>
-                </div>
-                
-                <h3 className="font-bold text-base mt-2 text-white">{item.item_name}</h3>
-                <p className="text-xs text-slate-500 mt-1">Supplier: {item.supplier_name} ({item.supplier_code})</p>
-                
-                {/* Clearly displays Barcode number under details */}
-                <p className="text-xs text-slate-400 mt-1 font-mono">
-                  Barcode: <span className="text-cyan-500 font-bold">{item.barcode}</span>
-                </p>
-              </div>
-              
-              {/* Dynamic QR Code */}
-              <div className="bg-white p-1.5 rounded-lg shadow-lg">
-                <QRCodeSVG value={item.barcode} size={55} />
-              </div>
-            </div>
-          ))
-        ) : (
-          <div className="text-center py-8 text-slate-500 text-sm">
-            No matching stock items found.
-          </div>
+      {/* Stock List Display */}
+      <FlatList
+        data={filteredItems}
+        keyExtractor={(item) => item.item_number}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <View style={styles.cardLeft}>
+              <View style={styles.badgeRow}>
+                <View style={styles.deptBadge}>
+                  <Text style={styles.deptBadgeText}>Dept: {item.dept_name} ({item.dept_code})</Text>
+                </View>
+                <Text style={styles.itemNumberText}>#{item.item_number}</Text>
+              </View>
+              <Text style={styles.itemName}>{item.item_name}</Text>
+              <Text style={styles.cardDetails}>Supplier: {item.supplier_name} ({item.supplier_code})</Text>
+              <Text style={styles.cardDetails}>
+                Barcode: <Text style={styles.barcodeHighlight}>{item.barcode}</Text>
+              </Text>
+            </View>
+            <View style={styles.qrContainer}>
+              <QRCodeSVG value={item.barcode} size={50} />
+            </View>
+          </View>
         )}
-      </div>
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No matching stock items found.</Text>
+        }
+      />
 
-      {/* --- BRANDING FOOTER --- */}
-      <footer className="text-center mt-12 mb-6">
-        <p className="text-xs text-slate-600">by Shehryar Zaheer</p>
-      </footer>
-
-    </div>
+      <Text style={styles.footer}>by Shehryar Zaheer</Text>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#020617',
+    padding: 16,
+    paddingTop: 40,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#22d3ee',
+  },
+  subtitle: {
+    fontSize: 11,
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginTop: 4,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+    borderColor: '#1e293b',
+    borderWidth: 1,
+    borderRadius: 8,
+    color: '#ffffff',
+    padding: 12,
+    fontSize: 14,
+  },
+  selectContainer: {
+    backgroundColor: '#0f172a',
+    borderColor: '#1e293b',
+    borderWidth: 1,
+    borderRadius: 8,
+    justifyContent: 'center',
+  },
+  htmlSelect: {
+    backgroundColor: 'transparent',
+    color: '#ffffff',
+    borderWidth: 0,
+    padding: 12,
+    fontSize: 12,
+    fontWeight: 'bold',
+    outline: 'none',
+    cursor: 'pointer',
+  },
+  clearBtn: {
+    backgroundColor: '#451a03',
+    borderColor: '#78350f',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  clearBtnText: {
+    color: '#f97316',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  chipScroll: {
+    maxHeight: 40,
+    marginBottom: 16,
+  },
+  chip: {
+    backgroundColor: '#0f172a',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    height: 30,
+    justifyContent: 'center',
+  },
+  activeChip: {
+    backgroundColor: '#22d3ee',
+  },
+  chipText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  activeChipText: {
+    color: '#020617',
+  },
+  card: {
+    backgroundColor: '#0f172a',
+    borderColor: '#1e293b',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardLeft: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  deptBadge: {
+    backgroundColor: '#083344',
+    borderColor: '#0e7490',
+    borderWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  deptBadgeText: {
+    color: '#22d3ee',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  itemNumberText: {
+    color: '#64748b',
+    fontFamily: 'monospace',
+    fontSize: 10,
+  },
+  itemName: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginTop: 6,
+  },
+  cardDetails: {
+    color: '#64748b',
+    fontSize: 12,
+    marginTop: 4,
+  },
+  barcodeHighlight: {
+    color: '#22d3ee',
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+  },
+  qrContainer: {
+    backgroundColor: '#ffffff',
+    padding: 6,
+    borderRadius: 8,
+  },
+  emptyText: {
+    color: '#475569',
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 14,
+  },
+  footer: {
+    textAlign: 'center',
+    color: '#334155',
+    fontSize: 11,
+    marginTop: 24,
+    marginBottom: 8,
+  }
+});
