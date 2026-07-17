@@ -19,12 +19,12 @@ export default function App() {
     const query = searchQuery.toLowerCase().trim();
 
     const matched = initialStockData.filter(item => {
-      const matchesSearch = 
-        item.item_name.toLowerCase().includes(query) ||
-        item.item_number.toString().includes(query) ||
-        item.supplier_name.toLowerCase().includes(query) ||
-        item.supplier_code.toLowerCase().includes(query) ||
-        item.barcode.includes(query);
+     const matchesSearch =
+      (item["ITEM DESC"] && item["ITEM DESC"].toLowerCase().includes(query)) ||
+      (item["ITEM"] && item["ITEM"].toString().includes(query)) ||
+      (item["SUPPLIER_NAME"] && item["SUPPLIER_NAME"].toLowerCase().includes(query)) ||
+      (item["BAR"] && item["BAR"].toString().includes(query)) ||
+      (item["PRIMARY BAR"] && item["PRIMARY BAR"].toString().includes(query));
 
       const matchesDepartment = !selectedDeptCode || item.dept_code === selectedDeptCode;
 
