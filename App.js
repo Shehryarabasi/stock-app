@@ -1,34 +1,46 @@
 import React, { useState, useMemo } from 'react';
 import { StyleSheet, Text, View, TextInput, ScrollView, FlatList, TouchableOpacity } from 'react-native';
 import { QRCodeSVG } from 'qrcode.react';
-import initialStockData from './products.json';
+import rawStockData from './products.json';
 
 export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDeptCode, setSelectedDeptCode] = useState(null);
   const [resultLimit, setResultLimit] = useState(10);
 
+  // Safeguard: Ensure we extract the raw array if the JSON is nested inside an object
+  const initialStockData = useMemo(() => {
+    if (!rawStockData) return [];
+    if (Array.isArray(rawStockData)) return rawStockData;
+    if (rawStockData.products && Array.isArray(rawStockData.products)) return rawStockData.products;
+    if (rawStockData.data && Array.isArray(rawStockData.data)) return rawStockData.data;
+    // If it's a single object with keys, try converting to an array
+    return Object.values(rawStockData).filter(item => typeof item === 'object' && item !== null);
+  }, []);
+
   // Automatically find all unique departments directly from your data file
   const departments = useMemo(() => {
     const deptMap = new Map();
     initialStockData.forEach(item => {
-      if (item["DEPT"] && item["DEPT_NAME"]) {
+      if (item && item["DEPT"] && item["DEPT_NAME"]) {
         deptMap.set(String(item["DEPT"]), String(item["DEPT_NAME"]).trim());
       }
     });
     return Array.from(deptMap.entries()).map(([code, name]) => ({ code, name }));
-  }, []);
+  }, [initialStockData]);
 
   // Search and Filter Logic
   const filteredItems = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
 
     const matched = initialStockData.filter(item => {
+      if (!item) return false;
+      
       const matchesSearch = !query ||
-        (item["ITEM DESC"] && item["ITEM DESC"].toLowerCase().includes(query)) ||
-        (item["ITEM"] && item["ITEM"].toString().includes(query)) ||
-        (item["SUPPLIER NAME"] && item["SUPPLIER NAME"].toLowerCase().includes(query)) ||
-        (item["PRIMARY BAR"] && item["PRIMARY BAR"].toString().includes(query));
+        (item["ITEM DESC"] && String(item["ITEM DESC"]).toLowerCase().includes(query)) ||
+        (item["ITEM"] && String(item["ITEM"]).toLowerCase().includes(query)) ||
+        (item["SUPPLIER NAME"] && String(item["SUPPLIER NAME"]).toLowerCase().includes(query)) ||
+        (item["PRIMARY BAR"] && String(item["PRIMARY BAR"]).toLowerCase().includes(query));
 
       const matchesDepartment = !selectedDeptCode || String(item["DEPT"]) === String(selectedDeptCode);
 
@@ -36,7 +48,7 @@ export default function App() {
     });
 
     return matched.slice(0, resultLimit);
-  }, [searchQuery, selectedDeptCode, resultLimit]);
+  }, [searchQuery, selectedDeptCode, resultLimit, initialStockData]);
 
   return (
     <View style={styles.container}>
@@ -122,7 +134,7 @@ export default function App() {
           </View>
         )}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>No matching stock items found.</Text>
+          <Text style={styles.emptyText}>No matching stock items found. (Total Items loaded: {initialStockData.length})</Text>
         }
       />
       <Text style={styles.footer}>by Shehryar Zaheer</Text>
