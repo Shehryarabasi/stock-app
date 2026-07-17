@@ -1,4 +1,0 @@
-python-barcode
-pillow
-pandas
-openpyxl
