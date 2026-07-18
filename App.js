@@ -6,22 +6,20 @@ function App() {
   const [filteredData, setFilteredData] = useState([]);
   const [displayCount, setDisplayCount] = useState(25);
 
-  // 1. Safe JSON Fetch
+  // 1. Fetch the CORRECT file: products.json
   useEffect(() => {
-    fetch('/data.json')
+    fetch('/products.json') // <--- FIXED THIS TO MATCH YOUR GITHUB REPO
       .then((res) => {
-        if (!res.ok) throw new Error('Failed to load data.json');
+        if (!res.ok) throw new Error('Failed to load products.json. Is it in the public folder?');
         return res.json();
       })
       .then((data) => {
         setStockData(data);
-        // Safely seed the initial search view
         filterItems('ATYAB', data);
       })
       .catch((err) => console.error("Error loading JSON:", err));
   }, []);
 
-  // 2. Optimized, case-insensitive filter logic
   const filterItems = (query, dataToFilter = stockData) => {
     if (!query.trim()) {
       setFilteredData(dataToFilter);
@@ -36,18 +34,18 @@ function App() {
     setFilteredData(filtered);
   };
 
-  // Handle live search changes
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    filterItems(value);
+    filterItems(value, stockData);
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#070d19', color: '#fff', fontFamily: 'sans-serif' }}>
+    // Fixed the layout so it takes up the entire screen (100vw/100vh) and kills the white space
+    <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#070d19', color: '#fff', fontFamily: 'sans-serif', margin: 0, padding: 0, overflow: 'hidden' }}>
       
       {/* SIDEBAR CONTAINER */}
-      <div style={{ width: '320px', backgroundColor: '#0b132b', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', borderRight: '1px solid #1c2541' }}>
+      <div style={{ width: '320px', minWidth: '320px', backgroundColor: '#0b132b', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', borderRight: '1px solid #1c2541', boxSizing: 'border-box' }}>
         <div>
           <h1 style={{ color: '#4ea8de', margin: '0', fontSize: '22px', fontWeight: 'bold' }}>Shehryar Zaheer</h1>
           <p style={{ color: '#64dfdf', margin: '5px 0 0 0', fontSize: '11px', letterSpacing: '1px' }}>PRIVATE MOBILE STOCK PORTAL</p>
@@ -60,16 +58,16 @@ function App() {
             value={searchTerm}
             onChange={handleSearchChange}
             placeholder="Search stock..." 
-            style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #1c2541', backgroundColor: '#1c2541', color: '#fff', fontSize: '14px' }}
+            style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #1c2541', backgroundColor: '#1c2541', color: '#fff', fontSize: '14px', width: '100%', boxSizing: 'border-box' }}
           />
           <select 
             value={displayCount} 
             onChange={(e) => setDisplayCount(Number(e.target.value))}
             style={{ padding: '10px', borderRadius: '4px', border: '1px solid #1c2541', backgroundColor: '#1c2541', color: '#fff', fontSize: '14px' }}
           >
-            <option value={25}>25 Results</option>
-            <option value={50}>50 Results</option>
-            <option value={100}>100 Results</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
           </select>
         </div>
 
@@ -80,7 +78,7 @@ function App() {
       </div>
 
       {/* MAIN CONTENT VIEW AREA */}
-      <div style={{ flex: 1, padding: '30px', backgroundColor: '#070d19', overflowY: 'auto', maxHeight: '100vh' }}>
+      <div style={{ flex: 1, padding: '30px', backgroundColor: '#070d19', overflowY: 'auto', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '1200px', margin: '0 auto' }}>
           
           {filteredData.slice(0, displayCount).map((item, index) => {
@@ -115,8 +113,8 @@ function App() {
 
           {filteredData.length === 0 && (
             <div style={{ textAlign: 'center', color: '#a5a5a5', marginTop: '40px' }}>
-              <h3>No items match your criteria.</h3>
-              <p style={{ fontSize: '14px' }}>Try adjusting your search terms or verify your data file configuration.</p>
+              <h3 style={{ margin: '0 0 10px 0' }}>No items match your criteria.</h3>
+              <p style={{ fontSize: '14px', margin: '0' }}>Try adjusting your search terms or verify your data file configuration.</p>
             </div>
           )}
 
