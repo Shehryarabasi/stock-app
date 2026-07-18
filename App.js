@@ -1,47 +1,31 @@
 import React, { useState, useEffect } from 'react';
+// This forces Vercel to bundle the data directly into the build
+import rawStockData from './products.json'; 
 
 function App() {
-  const [searchTerm, setSearchTerm] = useState('ATYAB');
-  const [stockData, setStockData] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('atyab');
   const [filteredData, setFilteredData] = useState([]);
   const [displayCount, setDisplayCount] = useState(25);
 
-  // 1. Fetch the CORRECT file: products.json
+  // Filter logic runs immediately using the imported data
   useEffect(() => {
-    fetch('/products.json') // <--- FIXED THIS TO MATCH YOUR GITHUB REPO
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load products.json. Is it in the public folder?');
-        return res.json();
-      })
-      .then((data) => {
-        setStockData(data);
-        filterItems('ATYAB', data);
-      })
-      .catch((err) => console.error("Error loading JSON:", err));
-  }, []);
-
-  const filterItems = (query, dataToFilter = stockData) => {
-    if (!query.trim()) {
-      setFilteredData(dataToFilter);
+    const dataArray = Array.isArray(rawStockData) ? rawStockData : [];
+    
+    if (!searchTerm.trim()) {
+      setFilteredData(dataArray);
       return;
     }
-    const lowerSearch = query.toLowerCase();
-    const filtered = dataToFilter.filter((item) => {
+
+    const lowerSearch = searchTerm.toLowerCase();
+    const filtered = dataArray.filter((item) => {
       return Object.values(item).some((val) => 
         String(val).toLowerCase().includes(lowerSearch)
       );
     });
     setFilteredData(filtered);
-  };
-
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    filterItems(value, stockData);
-  };
+  }, [searchTerm]);
 
   return (
-    // Fixed the layout so it takes up the entire screen (100vw/100vh) and kills the white space
     <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#070d19', color: '#fff', fontFamily: 'sans-serif', margin: 0, padding: 0, overflow: 'hidden' }}>
       
       {/* SIDEBAR CONTAINER */}
@@ -56,7 +40,7 @@ function App() {
           <input 
             type="text" 
             value={searchTerm}
-            onChange={handleSearchChange}
+            onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search stock..." 
             style={{ flex: 1, padding: '10px', borderRadius: '4px', border: '1px solid #1c2541', backgroundColor: '#1c2541', color: '#fff', fontSize: '14px', width: '100%', boxSizing: 'border-box' }}
           />
@@ -71,7 +55,6 @@ function App() {
           </select>
         </div>
 
-        {/* Short fallback feedback in sidebar if empty */}
         {filteredData.length === 0 && (
           <p style={{ color: '#a5a5a5', fontSize: '13px', margin: '10px 0 0 0' }}>No matching items found.</p>
         )}
@@ -82,8 +65,6 @@ function App() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '1200px', margin: '0 auto' }}>
           
           {filteredData.slice(0, displayCount).map((item, index) => {
-            
-            // Auto-detect property mappings dynamically
             const description = item.description || item.Description || item.DESCRIPTION || item["ITEM DESCRIPTION"] || item["Item Name"] || "No Description Available";
             const itemCode = item.itemCode || item.ItemCode || item["Item #"] || item["Item No"] || item["ITEM CODE"] || item.id || "N/A";
             
